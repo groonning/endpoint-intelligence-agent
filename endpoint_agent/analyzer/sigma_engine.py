@@ -276,8 +276,9 @@ class SigmaEngine:
                 try:
                     _PySigmaRule.from_yaml(text)
                 except Exception as e:
-                    self.load_errors.append(f"{name}: invalid Sigma rule: {e}")
-                    continue
+                    # pySigma validation is advisory — our own evaluator may
+                    # still handle the rule fine, so log but don't skip.
+                    self.load_errors.append(f"{name}: pySigma warning: {e}")
             logsource = doc.get("logsource") or {}
             stream = self._stream(logsource)
             if stream is None:

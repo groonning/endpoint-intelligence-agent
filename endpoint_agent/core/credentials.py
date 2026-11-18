@@ -75,11 +75,13 @@ class CredentialVault:
         self._store: dict[str, str] = {}
         self._salt: bytes
         self._fernet: Fernet
+        # Explicit passphrase takes priority over env key — the caller chose it.
         env_key = os.environ.get("AGENT2_VAULT_KEY")
+        effective_key = key or (env_key.encode() if env_key and not passphrase else None)
         if self.path.exists():
-            self._load(passphrase, key or (env_key.encode() if env_key else None))
+            self._load(passphrase, effective_key)
         else:
-            self._create(passphrase, key or (env_key.encode() if env_key else None))
+            self._create(passphrase, effective_key)
 
     # ------------------------------------------------------------- lifecycle
     def _create(self, passphrase: str | None, key: bytes | None) -> None:
