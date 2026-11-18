@@ -177,7 +177,170 @@ def create_app(agent: EndpointIntelligenceAgent, allowed_hosts: set[str] | None 
         agent.audit.record(agent.role, "hostkey.forget", host, "ok", {"port": port, "existed": gone})
         return jsonify(ok=True, existed=gone)
 
-    # ── Discover ──────────────────────────────────────────────────────
+    # ── Network scan (find hosts without scope) ─────────────────────
+    # Stores discovered-but-not-yet-approved hosts
+    discovered = {"hosts": [], "scanning": False, "error": ""}
+
+    @app.get("/api/discovered")
+    def discovered_list():
+        return jsonify(hosts=discovered["hosts"], scanning=discovered["scanning"],
+                       error=discovered["error"])
+
+    @app.post("/api/network-scan")
+    def network_scan():
+        """Scan the local network for live hosts — no scope required."""
+        if discovered["scanning"]:
+            return jsonify(ok=False, error="Nettverkssøk kjører allerede"), 409
+
+        discovered["scanning"] = True
+        discovered["error"] = ""
+
+        def run():
+            try:
+                import asyncio
+                import subprocess
+                import ipaddress as _ipa
+                import re as _re
+
+                # Find local subnets from network interfaces
+                subnets = set()
+                try:
+                    out = subprocess.run(["ip", "-4", "addr"], capture_output=True,
+                                         text=True, timeout=5).stdout
+                    for m in _re.finditer(r"inet (\d+\.\d+\.\d+\.\d+/\d+)", out):
+                        net = _ipa.ip_network(m.group(1), strict=False)
+                        # Skip loopback and link-local
+                        if net.is_loopback or net.is_link_local:
+                            continue
+                        # Cap at /22 (1024 hosts)
+                        if net.prefixlen < 22:
+                            net = _ipa.ip_network(f"{net.network_address}/24", strict=False)
+                        subnets.add(str(net))
+                except Exception:
+                    pass
+
+                if not subnets:
+                    # Fallback: try common private ranges
+                    subnets = {"192.168.1.0/24"}
+
+                # TCP probe each host on management ports
+                from ..discovery.discovery import MGMT_PORTS, DiscoveredHost
+
+                async def _probe_all():
+                    results = []
+                    sem = asyncio.Semaphore(32)
+
+                    async def _one(ip_str):
+                        async with sem:
+                            host = DiscoveredHost(ip=ip_str, source="tcp")
+                            for port in MGMT_PORTS:
+                                try:
+                                    fut = asyncio.open_connection(ip_str, port)
+                                    r, w = await asyncio.wait_for(fut, timeout=1.5)
+                                    w.close()
+                                    try: await w.wait_closed()
+                                    except: pass
+                                    host.alive = True
+                                    host.open_mgmt_ports.append(port)
+                                    host.services[port] = MGMT_PORTS[port]
+                                except (asyncio.TimeoutError, OSError):
+                                    pass
+                            if host.alive:
+                                # Guess OS from ports
+                                if 5985 in host.open_mgmt_ports or 5986 in host.open_mgmt_ports or 3389 in host.open_mgmt_ports:
+                                    host.os_guess = "windows"
+                                elif 22 in host.open_mgmt_ports:
+                                    host.os_guess = "linux"
+                                # Check if already in scope
+                                results.append(host)
+
+                    all_ips = []
+                    for sn in subnets:
+                        net = _ipa.ip_network(sn, strict=False)
+                        if net.num_addresses == 1:
+                            all_ips.append(str(net.network_address))
+                        else:
+                            all_ips.extend(str(h) for h in net.hosts())
+
+                    # Also try ARP/ping scan via nmap if available
+                    try:
+                        for sn in subnets:
+                            nmap_res = subprocess.run(
+                                ["nmap", "-sn", "-n", str(sn)],
+                                capture_output=True, text=True, timeout=60)
+                            for m in _re.finditer(r"Nmap scan report for (\d+\.\d+\.\d+\.\d+)", nmap_res.stdout):
+                                ip = m.group(1)
+                                if ip not in all_ips:
+                                    all_ips.append(ip)
+                    except Exception:
+                        pass
+
+                    await asyncio.gather(*(_one(ip) for ip in all_ips[:1024]))
+                    return results
+
+                loop = asyncio.new_event_loop()
+                hosts = loop.run_until_complete(_probe_all())
+                loop.close()
+
+                # Mark which are already in scope
+                scope_ids = {e.identifier for e in agent.scope.all()}
+                host_dicts = []
+                for h in sorted(hosts, key=lambda x: x.ip):
+                    d = h.dict()
+                    d["in_scope"] = h.ip in scope_ids
+                    host_dicts.append(d)
+
+                discovered["hosts"] = host_dicts
+
+            except Exception as e:
+                discovered["error"] = str(e)
+            finally:
+                discovered["scanning"] = False
+
+        threading.Thread(target=run, daemon=True, name="network-scan").start()
+        return jsonify(ok=True, subnets=list(subnets) if 'subnets' in dir() else [])
+
+    # ── Approve + assess a discovered host ────────────────────────────
+    @app.post("/api/approve-and-scan")
+    def approve_and_scan():
+        body = request.json or {}
+        host = body.get("host", "").strip()
+        os_name = body.get("os", "linux")
+        if not host:
+            return jsonify(ok=False, error="host required"), 400
+
+        # Add to scope
+        try:
+            agent.add_scope(host, "godkjent via dashboard", os_name, confirmed=True)
+        except Exception:
+            pass  # Already in scope is fine
+
+        # Mark as in_scope in discovered list
+        for h in discovered["hosts"]:
+            if h["ip"] == host:
+                h["in_scope"] = True
+
+        # Start assessment
+        agent.kill.check()
+        agent.rbac.check(agent.role, "collect.read")
+        with job_lock:
+            if job["running"]:
+                return jsonify(ok=False, error="En jobb kjører allerede — vent til den er ferdig"), 409
+            job.update(running=True, error="", type="assess",
+                       started_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+
+        def run():
+            try:
+                agent.assess_host(host, os_name, with_ai=True)
+            except Exception as e:
+                job["error"] = str(e)
+            finally:
+                job["running"] = False
+
+        threading.Thread(target=run, daemon=True).start()
+        return jsonify(ok=True)
+
+    # ── Discover (scope-based, kept for compatibility) ────────────────
     @app.post("/api/discover")
     def discover():
         agent.kill.check()
