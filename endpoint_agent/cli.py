@@ -82,7 +82,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--vault-pass", action="store_true",
                    help="open the credential vault with a passphrase prompt")
     p.add_argument("--vault-env", action="store_true", help=argparse.SUPPRESS)
-    sub = p.add_subparsers(dest="cmd", required=True)
+    sub = p.add_subparsers(dest="cmd")
 
     sp = sub.add_parser("scope", help="manage authorised endpoints")
     sp.add_argument("action", choices=["list", "add", "remove", "request"])
@@ -147,6 +147,14 @@ def _parser() -> argparse.ArgumentParser:
 
 def _main(argv=None) -> int:
     args = _parser().parse_args(argv)
+
+    # No subcommand → start dashboard (the main way to use the agent)
+    if not args.cmd:
+        agent = _agent(args)
+        from .server import run_dashboard
+        run_dashboard(agent, open_browser=True)
+        return 0
+
     if args.cmd == "vault":
         return _cmd_vault(args)
     agent = _agent(args)
