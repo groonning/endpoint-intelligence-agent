@@ -2,144 +2,262 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Endpoint Intelligence Dashboard</title>
 <style>
- :root{--bg:#0d1117;--panel:#161b22;--line:#30363d;--fg:#e6edf3;--mut:#8b949e;
-       --acc:#2f81f7;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--teal:#39c5cf;--crit:#ff7b72}
- *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);
-   font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
- header{display:flex;align-items:center;gap:14px;padding:12px 20px;flex-wrap:wrap;
-   border-bottom:1px solid var(--line);background:var(--panel)}
- header h1{font-size:16px;margin:0;font-weight:600}
+ :root{--bg:#0f1318;--panel:#171d26;--line:#262e3a;--fg:#dce4ee;--mut:#7d8a9a;
+       --acc:#4d94ff;--ok:#3fb950;--warn:#e3a832;--bad:#f85149;--teal:#39c5cf;--crit:#ff7b72;
+       --glow:rgba(77,148,255,.12);--radius:12px}
+ *{box-sizing:border-box;margin:0}
+ body{background:var(--bg);color:var(--fg);font:14px/1.6 'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+ ::selection{background:var(--acc);color:#fff}
+
+ /* Header */
+ header{display:flex;align-items:center;gap:14px;padding:14px 24px;flex-wrap:wrap;
+   border-bottom:1px solid var(--line);background:linear-gradient(180deg,#141a23,var(--bg))}
+ header h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
  .sp{flex:1}
- .dot{width:9px;height:9px;border-radius:50%;background:var(--mut);display:inline-block}
- .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)} .dot.bad{background:var(--bad);box-shadow:0 0 8px var(--bad)}
- button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:6px 12px;
-   cursor:pointer;font-size:13px;font-family:inherit}
- button.ghost{background:#21262d;color:var(--fg);border:1px solid var(--line)}
- button.danger{background:#30181a;color:var(--bad);border:1px solid var(--bad)}
- button.small{padding:4px 8px;font-size:12px}
- button.ok{background:#0d2818;color:var(--ok);border:1px solid var(--ok)}
- button:hover{filter:brightness(1.1)} button:disabled{opacity:.5;cursor:default}
+ .dot{width:10px;height:10px;border-radius:50%;background:var(--mut);display:inline-block;transition:all .3s}
+ .dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok)} .dot.bad{background:var(--bad);box-shadow:0 0 10px var(--bad)}
+
+ /* Buttons */
+ button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:7px 14px;
+   cursor:pointer;font-size:13px;font-family:inherit;font-weight:500;transition:all .15s}
+ button.ghost{background:rgba(255,255,255,.06);color:var(--fg);border:1px solid var(--line)}
+ button.danger{background:rgba(248,81,73,.1);color:var(--bad);border:1px solid rgba(248,81,73,.3)}
+ button.small{padding:5px 10px;font-size:12px;border-radius:6px}
+ button.ok{background:rgba(63,185,80,.1);color:var(--ok);border:1px solid rgba(63,185,80,.3)}
+ button:hover{filter:brightness(1.15);transform:translateY(-1px)} button:active{transform:translateY(0)}
+ button:disabled{opacity:.4;cursor:default;transform:none}
  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
- input,select{background:#0d1117;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;font-size:13px}
+
+ /* Inputs */
+ input,select{background:rgba(255,255,255,.04);color:var(--fg);border:1px solid var(--line);border-radius:8px;
+   padding:8px 12px;font:inherit;font-size:13px;transition:border-color .15s}
+ input:focus,select:focus{border-color:var(--acc)}
  input::placeholder{color:var(--mut)}
- .legal{font-size:12px;color:var(--warn);padding:8px 20px;background:#1c1708;border-bottom:1px solid #3a2e0a}
- .killed{display:none;padding:10px 20px;background:#30181a;color:var(--crit);border-bottom:1px solid var(--bad);font-weight:600}
- .wrap{padding:20px;display:grid;gap:18px;max-width:1400px;margin:0 auto}
- .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
- .panel h2{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);
+
+ /* Info bubbles */
+ .info-btn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+   border-radius:50%;background:rgba(255,255,255,.06);color:var(--mut);font-size:11px;font-weight:700;
+   cursor:pointer;border:1px solid var(--line);transition:all .15s;user-select:none;flex-shrink:0}
+ .info-btn:hover{background:var(--acc);color:#fff;border-color:var(--acc)}
+ .info-popup{display:none;position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
+   background:#1e2530;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+   font-size:13px;line-height:1.6;color:var(--fg);width:320px;z-index:100;
+   box-shadow:0 8px 32px rgba(0,0,0,.4);pointer-events:auto}
+ .info-popup::before{content:"";position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(45deg);
+   width:10px;height:10px;background:#1e2530;border-left:1px solid var(--line);border-top:1px solid var(--line)}
+ .info-wrap{position:relative;display:inline-flex}
+ .info-popup.show{display:block}
+
+ /* Banners */
+ .legal{font-size:12px;color:var(--warn);padding:10px 24px;background:rgba(227,168,50,.06);
+   border-bottom:1px solid rgba(227,168,50,.15)}
+ .killed{display:none;padding:12px 24px;background:rgba(248,81,73,.08);color:var(--crit);
+   border-bottom:1px solid rgba(248,81,73,.2);font-weight:600}
+
+ /* Layout */
+ .wrap{padding:24px;display:grid;gap:20px;max-width:1440px;margin:0 auto}
+ .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;min-width:0;
+   transition:border-color .2s}
+ .panel:hover{border-color:rgba(255,255,255,.08)}
+ .panel h2{margin:0 0 14px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);font-weight:600;
    display:flex;align-items:center;gap:10px;flex-wrap:wrap}
- .panel h2 .sp{flex:1}
- .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
- .tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:default;transition:border-color .15s}
- .tile:hover{border-color:var(--acc)}
- .tile .n{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
- .tile .l{font-size:12px;color:var(--mut)}
- .grid2{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:18px;align-items:start}
+
+ /* Tiles */
+ .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+ .tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;
+   cursor:default;transition:all .2s}
+ .tile:hover{border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.02)}
+ .tile .n{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+ .tile .l{font-size:12px;color:var(--mut);margin-top:2px}
+
+ /* Grid */
+ .grid2{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px;align-items:start}
  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
- .stack{display:grid;gap:18px}
- table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:6px 8px;
-   border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:top} th{color:var(--mut);font-weight:500}
- .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
- .tag{font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--mut);white-space:nowrap}
- .tag.ok{color:var(--ok);border-color:var(--ok)} .tag.warn{color:var(--warn);border-color:var(--warn)}
- .tag.bad{color:var(--bad);border-color:var(--bad)} .tag.teal{color:var(--teal);border-color:var(--teal)}
- .tag.crit{color:#0d1117;background:var(--crit);border-color:var(--crit);font-weight:700}
- .tag.acc{color:var(--acc);border-color:var(--acc)}
+ .stack{display:grid;gap:20px}
+
+ /* Tables */
+ table{width:100%;border-collapse:collapse}
+ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:top}
+ th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+ .mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px}
+
+ /* Tags */
+ .tag{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mut);
+   white-space:nowrap;font-weight:500}
+ .tag.ok{color:var(--ok);border-color:rgba(63,185,80,.3);background:rgba(63,185,80,.06)}
+ .tag.warn{color:var(--warn);border-color:rgba(227,168,50,.3);background:rgba(227,168,50,.06)}
+ .tag.bad{color:var(--bad);border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.06)}
+ .tag.teal{color:var(--teal);border-color:rgba(57,197,207,.3);background:rgba(57,197,207,.06)}
+ .tag.crit{color:#fff;background:var(--crit);border-color:var(--crit);font-weight:700}
+ .tag.acc{color:var(--acc);border-color:rgba(77,148,255,.3);background:rgba(77,148,255,.06)}
 
  /* Host cards */
  .hostgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
- .hcard{background:#10151c;border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;
-   transition:border-color .15s,box-shadow .15s}
- .hcard:hover{border-color:var(--acc);box-shadow:0 0 12px rgba(47,129,247,.15)}
- .hcard.selected{border-color:var(--acc);box-shadow:0 0 16px rgba(47,129,247,.25)}
- .hcard .ip{font:600 15px/1.2 ui-monospace,Menlo,monospace}
- .hcard .meta{font-size:12px;color:var(--mut);margin:4px 0 8px}
+ .hcard{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:var(--radius);
+   padding:16px;cursor:pointer;transition:all .2s}
+ .hcard:hover{border-color:var(--acc);box-shadow:0 0 20px var(--glow);transform:translateY(-2px)}
+ .hcard.selected{border-color:var(--acc);box-shadow:0 0 24px var(--glow);background:rgba(77,148,255,.04)}
+ .hcard .ip{font:700 15px/1.2 ui-monospace,'SF Mono',Menlo,monospace}
+ .hcard .meta{font-size:12px;color:var(--mut);margin:6px 0 10px}
  .hcard .badges{display:flex;gap:6px;flex-wrap:wrap}
 
- /* Detail panel (right side when host selected) */
+ /* Detail panel */
  .detail{display:none}
- .detail.open{display:block}
- .detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
- .detail-head h3{margin:0;font-size:16px;font-family:ui-monospace,Menlo,monospace}
- .finding{padding:10px 12px;border-top:1px solid var(--line)}
- .finding .t{font-weight:600;margin:4px 0 2px;overflow-wrap:anywhere}
- .finding .d{color:#c9d1d9;font-size:13px;overflow-wrap:anywhere}
- .finding .r{color:var(--ok);font-size:12.5px;margin-top:4px}
- .ev{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:#0d1117;border:1px solid var(--line);
-   border-radius:6px;padding:6px 8px;margin-top:6px;white-space:pre-wrap;word-break:break-all;color:var(--mut)}
- .hyp{border:1px solid #3a2e0a;background:#1c1708;border-radius:8px;padding:10px 12px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:12px}
- .hyp .k{font-size:11px;color:var(--warn);text-transform:uppercase;font-weight:700;letter-spacing:.4px}
+ .detail.open{display:block;animation:fadeIn .2s ease}
+ @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+ .detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+ .detail-head h3{margin:0;font-size:17px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-weight:700}
+
+ /* Findings */
+ .finding{padding:12px 14px;border-top:1px solid var(--line);transition:background .15s}
+ .finding:hover{background:rgba(255,255,255,.02)}
+ .finding .t{font-weight:600;margin:6px 0 3px;overflow-wrap:anywhere}
+ .finding .d{color:#b8c4d0;font-size:13px;overflow-wrap:anywhere;line-height:1.5}
+ .finding .r{color:var(--ok);font-size:12.5px;margin-top:6px;font-weight:500}
+ .ev{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11.5px;background:rgba(0,0,0,.3);
+   border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;
+   white-space:pre-wrap;word-break:break-all;color:var(--mut)}
+ .hyp{border:1px solid rgba(227,168,50,.2);background:rgba(227,168,50,.04);border-radius:10px;
+   padding:12px 14px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:14px}
+ .hyp .k{font-size:11px;color:var(--warn);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:6px}
+
  .mut{color:var(--mut)} .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
- select{background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;font-size:12px}
- .req{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px}
- .form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+ .req{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;
+   background:rgba(255,255,255,.01)}
+ .form-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
  .form-row input{flex:1;min-width:120px}
- .scope-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+ .scope-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
  .scope-row:last-child{border-bottom:none}
 
+ /* Welcome box */
+ .welcome{text-align:center;padding:40px 20px;color:var(--mut)}
+ .welcome h3{color:var(--fg);font-size:16px;margin-bottom:8px;font-weight:600}
+ .welcome p{max-width:400px;margin:0 auto;line-height:1.6}
+
  /* Tabs */
- .tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:14px}
- .tab{padding:8px 16px;cursor:pointer;font-size:13px;color:var(--mut);border-bottom:2px solid transparent;transition:all .15s}
+ .tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:16px}
+ .tab{padding:10px 18px;cursor:pointer;font-size:13px;font-weight:500;color:var(--mut);
+   border-bottom:2px solid transparent;transition:all .15s}
  .tab:hover{color:var(--fg)}
  .tab.active{color:var(--acc);border-bottom-color:var(--acc)}
  .tabcontent{display:none}
- .tabcontent.active{display:block}
+ .tabcontent.active{display:block;animation:fadeIn .2s ease}
 
- #toast{position:fixed;right:16px;bottom:16px;background:#21262d;border:1px solid var(--line);border-radius:8px;
-   padding:10px 14px;max-width:420px;display:none;font-size:13px;z-index:999}
+ /* Step indicator for onboarding */
+ .step-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+   border-radius:50%;background:var(--acc);color:#fff;font-size:12px;font-weight:700;flex-shrink:0}
+
+ #toast{position:fixed;right:20px;bottom:20px;background:#1e2530;border:1px solid var(--line);border-radius:10px;
+   padding:12px 16px;max-width:420px;display:none;font-size:13px;z-index:999;
+   box-shadow:0 8px 32px rgba(0,0,0,.3);animation:fadeIn .2s ease}
  #toast.err{border-color:var(--bad);color:var(--crit)}
 </style></head><body>
 <header>
-  <span class="dot" id="dot"></span><h1>Endpoint Intelligence · Agent 2</h1>
-  <span class="tag" id="role"></span><span class="tag" id="auditTag"></span><span class="tag" id="jobTag" style="display:none"></span>
+  <span class="dot" id="dot"></span>
+  <h1>Endpoint Intelligence</h1>
+  <span class="tag" id="role"></span>
+  <span class="tag" id="auditTag"></span>
+  <span class="tag" id="jobTag" style="display:none"></span>
   <span class="sp"></span>
   <button class="danger" id="btnKill">Nødstopp</button>
+  <div class="info-wrap">
+    <span class="info-btn" data-info="header">?</span>
+    <div class="info-popup" id="info-header">
+      <b>Hva er dette?</b><br>
+      Endpoint Intelligence er et sikkerhetsverktøy som skanner datamaskiner i nettverket ditt for å finne svakheter og problemer.
+      Det leser bare — det endrer ingenting.<br><br>
+      <b>Nødstopp</b> stopper all aktivitet umiddelbart.
+    </div>
+  </div>
 </header>
 <div class="killed" id="killed"></div>
-<div class="legal">Kun autoriserte maskiner. Agenten leser, den endrer ingenting på endepunktene. Nye mål må godkjennes av et menneske.</div>
+<div class="legal">Kun autoriserte maskiner. Agenten leser, den endrer ingenting. Nye mål må godkjennes av et menneske.</div>
 
 <div class="wrap">
-  <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" data-tab="overview">Oversikt</div>
-    <div class="tab" data-tab="scope">Scope & Tilgang</div>
-    <div class="tab" data-tab="vault">Vault</div>
-    <div class="tab" data-tab="audit">Revisjonslogg</div>
+    <div class="tab" data-tab="scope">Godkjente verter</div>
+    <div class="tab" data-tab="vault">Pålogging</div>
+    <div class="tab" data-tab="audit">Hendelseslogg</div>
   </div>
 
-  <!-- TAB: Overview -->
+  <!-- ═══ TAB: Overview ═══ -->
   <div class="tabcontent active" id="tab-overview">
-    <!-- Quick-add scope + action bar -->
-    <div class="panel" style="margin-bottom:18px">
-      <h2>Legg til vert og godkjenn skanning</h2>
+    <!-- Quick-add -->
+    <div class="panel" style="margin-bottom:20px">
+      <h2>
+        <span class="step-num">1</span> Legg til en maskin og start skanning
+        <div class="info-wrap">
+          <span class="info-btn" data-info="quickadd">?</span>
+          <div class="info-popup" id="info-quickadd">
+            <b>Slik starter du:</b><br>
+            Skriv inn IP-adressen til maskinen du vil skanne (f.eks. <code>192.168.1.10</code>), velg operativsystem, og klikk knappen.<br><br>
+            Maskinen legges til som godkjent og skanningen starter med en gang. Du må eie maskinen eller ha tillatelse til å teste den.
+          </div>
+        </div>
+      </h2>
       <div class="form-row">
-        <input id="quickIp" placeholder="IP, CIDR eller hostname" style="max-width:220px">
+        <input id="quickIp" placeholder="f.eks. 192.168.1.10" style="max-width:240px" autofocus>
         <select id="quickOs"><option value="linux">Linux</option><option value="windows">Windows</option></select>
-        <button id="btnQuickAdd" class="ok">Godkjenn og legg til</button>
-        <span style="color:var(--mut);font-size:12px">Bekreft at du eier verten eller har skriftlig tillatelse</span>
+        <button id="btnQuickAdd" class="ok" style="padding:8px 18px">Godkjenn og skann</button>
       </div>
-      <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">
+      <div style="font-size:12px;color:var(--mut);margin-top:4px">
+        Ved å klikke bekrefter du at du eier maskinen eller har skriftlig tillatelse til å teste den.
+      </div>
+
+      <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:16px">
         <div class="row" style="gap:12px">
-          <label class="row mut" style="font-size:12px"><input type="checkbox" id="withAi" checked> AI-analyse</label>
-          <button id="btnSweep">Kjør full sweep</button>
+          <label class="row" style="font-size:12px;color:var(--mut);gap:4px"><input type="checkbox" id="withAi" checked> AI-analyse</label>
+          <button id="btnSweep" class="ghost">Skann alle verter</button>
           <button class="ghost" id="btnBridge">Hent fra Agent 1</button>
           <button class="ghost" id="btnDiscover">Oppdag verter</button>
           <span class="sp"></span>
-          <select id="minSev" aria-label="Laveste alvorlighetsgrad">
-            <option value="0">Alle funn</option><option value="1" selected>Lav og høyere</option>
-            <option value="2">Medium og høyere</option><option value="3">Høy og kritisk</option>
+          <div class="info-wrap">
+            <span class="info-btn" data-info="actions">?</span>
+            <div class="info-popup" id="info-actions">
+              <b>Handlinger:</b><br>
+              <b>Skann alle verter</b> — kjører en ny skanning mot alle godkjente maskiner<br>
+              <b>Hent fra Agent 1</b> — henter enheter som WiFi-agenten har oppdaget<br>
+              <b>Oppdag verter</b> — søker etter aktive maskiner i godkjente IP-områder<br>
+              <b>AI-analyse</b> — lar en AI-modell vurdere funnene (Ollama lokalt eller Claude)
+            </div>
+          </div>
+          <select id="minSev" aria-label="Filtrer alvorlighetsgrad">
+            <option value="0">Alle funn</option><option value="1" selected>Lav +</option>
+            <option value="2">Medium +</option><option value="3">Høy +</option>
           </select>
         </div>
       </div>
     </div>
+
     <!-- Tiles -->
-    <div class="tiles" id="tiles" style="margin-bottom:18px"></div>
+    <div class="tiles" id="tiles" style="margin-bottom:20px"></div>
+
     <!-- Host grid + detail -->
     <div class="grid2">
       <div>
         <div class="panel">
-          <h2>Verter <span class="mut" id="sessionMeta" style="text-transform:none;letter-spacing:0"></span></h2>
-          <div class="hostgrid" id="hostgrid"><div class="mut">Legg til en vert ovenfor og trykk «Godkjenn og legg til» for å starte.</div></div>
+          <h2>
+            <span class="step-num">2</span> Velg en maskin for detaljer
+            <div class="info-wrap">
+              <span class="info-btn" data-info="hosts">?</span>
+              <div class="info-popup" id="info-hosts">
+                <b>Vertsoversikt</b><br>
+                Hvert kort representerer en maskin som er blitt skannet. Fargene viser alvorlighetsgraden av det verste funnet:<br><br>
+                <span style="color:var(--teal)">Blå</span> = lav risiko &nbsp;
+                <span style="color:var(--warn)">Gul</span> = medium &nbsp;
+                <span style="color:var(--bad)">Rød</span> = høy &nbsp;
+                <span style="color:var(--crit)">Oransje</span> = kritisk<br><br>
+                Klikk på et kort for å se alle funnene.
+              </div>
+            </div>
+          </h2>
+          <div class="hostgrid" id="hostgrid">
+            <div class="welcome">
+              <h3>Ingen maskiner skannet enda</h3>
+              <p>Legg til en maskin i feltet ovenfor og klikk «Godkjenn og skann» for å komme i gang.</p>
+            </div>
+          </div>
         </div>
       </div>
       <div class="stack">
@@ -149,61 +267,114 @@
             <h3 id="detailHost"></h3>
             <span class="tag" id="detailOs"></span>
             <span class="sp"></span>
-            <button class="small" id="btnAssess">Kjør assessment</button>
-            <button class="small ghost" id="btnBaseline" style="display:none">Godta baseline</button>
+            <button class="small" id="btnAssess">Skann på nytt</button>
+            <button class="small ghost" id="btnBaseline" style="display:none">Godta endringer</button>
           </div>
           <div id="detailFindings"></div>
           <div id="detailAi"></div>
         </div>
         <!-- Approvals -->
         <div class="panel">
-          <h2>Venter på godkjenning</h2>
-          <div id="approvals"><div class="mut">Ingen forespørsler.</div></div>
+          <h2>Venter på godkjenning
+            <div class="info-wrap">
+              <span class="info-btn" data-info="approvals">?</span>
+              <div class="info-popup" id="info-approvals">
+                <b>Godkjenninger</b><br>
+                Når Agent 1 (WiFi-agenten) oppdager nye enheter, havner de her.
+                Du må godkjenne hver maskin før den kan skannes.
+                Dette sikrer at agenten aldri tester noe du ikke har gitt tillatelse til.
+              </div>
+            </div>
+          </h2>
+          <div id="approvals"><div class="mut">Ingen forespørsler venter.</div></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- TAB: Scope -->
+  <!-- ═══ TAB: Scope ═══ -->
   <div class="tabcontent" id="tab-scope">
     <div class="panel">
-      <h2>Autorisert scope <span class="sp"></span></h2>
+      <h2>Godkjente maskiner
+        <div class="info-wrap">
+          <span class="info-btn" data-info="scope">?</span>
+          <div class="info-popup" id="info-scope">
+            <b>Hva er scope?</b><br>
+            Scope er listen over maskiner agenten har lov til å skanne.
+            Du kan legge til enkelt-IPer (f.eks. <code>192.168.1.10</code>),
+            hele nettverk (<code>192.168.1.0/24</code>), eller hostnavn.<br><br>
+            Agenten vil aldri skanne noe som ikke er i denne listen.
+          </div>
+        </div>
+      </h2>
       <div class="form-row">
         <input id="scopeIp" placeholder="IP, CIDR eller hostname">
-        <select id="scopeOs"><option value="">OS (valgfritt)</option><option value="linux">Linux</option><option value="windows">Windows</option></select>
+        <select id="scopeOs"><option value="">OS (auto)</option><option value="linux">Linux</option><option value="windows">Windows</option></select>
         <input id="scopeNote" placeholder="Notat (valgfritt)" style="min-width:160px">
         <button id="btnScopeAdd">Legg til</button>
       </div>
       <div id="scopeList"></div>
     </div>
-    <div class="panel" style="margin-top:18px">
-      <h2>Vertsnøkler (SSH)</h2>
+    <div class="panel" style="margin-top:20px">
+      <h2>SSH-vertsnøkler
+        <div class="info-wrap">
+          <span class="info-btn" data-info="hostkeys">?</span>
+          <div class="info-popup" id="info-hostkeys">
+            <b>Vertsnøkler</b><br>
+            Når agenten kobler til en maskin via SSH for første gang, lagrer den maskinens fingeravtrykk.
+            Hvis fingeravtrykket endrer seg senere (noen kan forsøke å imitere maskinen), avbrytes tilkoblingen automatisk.<br><br>
+            «Glem» fjerner det lagrede fingeravtrykket slik at neste tilkobling lagrer et nytt.
+          </div>
+        </div>
+      </h2>
       <div id="hostkeyList"><div class="mut">Laster...</div></div>
     </div>
   </div>
 
-  <!-- TAB: Vault -->
+  <!-- ═══ TAB: Vault ═══ -->
   <div class="tabcontent" id="tab-vault">
     <div class="panel">
-      <h2>Credential Vault</h2>
+      <h2>Påloggingsinformasjon
+        <div class="info-wrap">
+          <span class="info-btn" data-info="vault">?</span>
+          <div class="info-popup" id="info-vault">
+            <b>Credential Vault</b><br>
+            Her lagrer du brukernavn og passord som agenten bruker for å logge inn på maskinene den skanner.
+            Alt er kryptert — passordene vises aldri i klartekst.<br><br>
+            Gi hver credential en ID (f.eks. «lab-ssh» eller «server-root»)
+            som du kan koble til maskiner i konfigurasjonen.
+          </div>
+        </div>
+      </h2>
       <div class="form-row">
-        <input id="vaultId" placeholder="ID (f.eks. lab-ssh)">
-        <select id="vaultKind"><option value="ssh_password">SSH passord</option><option value="ssh_key">SSH nøkkel</option>
-          <option value="winrm_password">WinRM passord</option><option value="api_token">API token</option></select>
-        <input id="vaultUser" placeholder="Brukernavn">
-        <input id="vaultSecret" type="password" placeholder="Passord/nøkkel/token">
-        <button id="btnVaultAdd">Legg til</button>
+        <input id="vaultId" placeholder="ID (f.eks. lab-ssh)" style="max-width:180px">
+        <select id="vaultKind">
+          <option value="ssh_password">SSH passord</option><option value="ssh_key">SSH nøkkel</option>
+          <option value="winrm_password">WinRM passord</option><option value="api_token">API-token</option>
+        </select>
+        <input id="vaultUser" placeholder="Brukernavn" style="max-width:160px">
+        <input id="vaultSecret" type="password" placeholder="Passord / nøkkel / token">
+        <button id="btnVaultAdd">Lagre</button>
       </div>
       <div id="vaultList"><div class="mut">Laster...</div></div>
     </div>
   </div>
 
-  <!-- TAB: Audit -->
+  <!-- ═══ TAB: Audit ═══ -->
   <div class="tabcontent" id="tab-audit">
     <div class="panel">
-      <h2>Revisjonslogg (siste hendelser)</h2>
+      <h2>Hendelseslogg
+        <div class="info-wrap">
+          <span class="info-btn" data-info="auditlog">?</span>
+          <div class="info-popup" id="info-auditlog">
+            <b>Revisjonslogg</b><br>
+            Her ser du alt agenten har gjort — hver skanning, hvert tilgangsvedtak, og hvert innloggingsforsøk.
+            Loggen er kryptografisk beskyttet: hvis noen prøver å endre den, oppdages det automatisk.
+          </div>
+        </div>
+      </h2>
       <div style="overflow-x:auto">
-        <table style="min-width:760px"><thead><tr><th>Tid (UTC)</th><th>Aktør</th><th>Handling</th><th>Mål</th><th>Utfall</th><th>Detaljer</th></tr></thead>
+        <table style="min-width:760px"><thead><tr><th>Tidspunkt</th><th>Bruker</th><th>Handling</th><th>Mål</th><th>Resultat</th><th>Detaljer</th></tr></thead>
         <tbody id="audit"></tbody></table>
       </div>
     </div>
@@ -211,9 +382,10 @@
 </div>
 
 <div id="toast" role="status"></div>
+
 <script>
 const TOKEN = "__AGENT2_TOKEN__";
-const SEV = ["info","lav","medium","høy","kritisk"];
+const SEV = ["info","lav","medium","h\xf8y","kritisk"];
 const SEVCLS = ["", "teal", "warn", "bad", "crit"];
 const $ = id => document.getElementById(id);
 
@@ -238,9 +410,27 @@ async function api(path, body){
 }
 
 let toastTimer;
-function toast(msg, err){ const t = $("toast"); t.textContent = msg; t.className = err ? "err" : ""; t.style.display = "block";
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = "none", 6000); }
+function toast(msg, err){
+  const t = $("toast"); t.textContent = msg; t.className = err ? "err" : ""; t.style.display = "block";
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = "none", 5000);
+}
 async function act(fn, okMsg){ try { await fn(); if (okMsg) toast(okMsg); } catch(e) { toast(e.message, true); } refresh(); }
+
+// ── Info bubbles ────────────────────────────────────────────────
+let openInfo = null;
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".info-btn");
+  if (btn) {
+    e.stopPropagation();
+    const id = "info-" + btn.dataset.info;
+    const popup = $(id);
+    if (openInfo && openInfo !== popup) openInfo.classList.remove("show");
+    popup.classList.toggle("show");
+    openInfo = popup.classList.contains("show") ? popup : null;
+    return;
+  }
+  if (openInfo && !e.target.closest(".info-popup")) { openInfo.classList.remove("show"); openInfo = null; }
+});
 
 // ── Tabs ────────────────────────────────────────────────────────
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
@@ -257,23 +447,23 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
 function renderStatus(s){
   const killed = s.kill.engaged;
   $("dot").className = "dot " + (killed ? "bad" : "on");
-  $("role").textContent = "rolle: " + s.role;
-  $("auditTag").textContent = s.audit.ok ? "revisjonslogg intakt" : "REVISJONSLOGG BRUTT";
+  $("role").textContent = s.role;
+  $("auditTag").textContent = s.audit.ok ? "logg intakt" : "LOGG BRUTT";
   $("auditTag").className = "tag " + (s.audit.ok ? "ok" : "bad");
   $("killed").style.display = killed ? "block" : "none";
-  $("killed").textContent = killed ? "Nødstopp er aktiv: " + (s.kill.reason || "") + ". Ingen innsamling kjører." : "";
-  const k = $("btnKill"); k.textContent = killed ? "Opphev nødstopp" : "Nødstopp"; k.className = killed ? "ghost" : "danger";
-  k.onclick = () => killed ? act(() => api("/api/reset-kill", {}), "Nødstopp opphevet") : act(() => api("/api/kill", {reason: "dashbord"}), "Nødstopp aktivert");
+  $("killed").textContent = killed ? "N\xf8dstopp aktiv: " + (s.kill.reason || "") + ". All aktivitet er stanset." : "";
+  const k = $("btnKill"); k.textContent = killed ? "Opphev n\xf8dstopp" : "N\xf8dstopp"; k.className = killed ? "ghost" : "danger";
+  k.onclick = () => killed ? act(() => api("/api/reset-kill", {}), "N\xf8dstopp opphevet") : act(() => api("/api/kill", {reason: "dashbord"}), "N\xf8dstopp aktivert");
   const sw = $("btnSweep"); sw.disabled = s.sweep.running || killed;
-  sw.textContent = s.sweep.running ? (s.sweep.type === "assess" ? "Vurderer..." : s.sweep.type === "discover" ? "Søker..." : "Sweep kjører...") : "Kjør full sweep";
+  sw.textContent = s.sweep.running ? (s.sweep.type === "assess" ? "Skanner..." : s.sweep.type === "discover" ? "S\xf8ker..." : "Skanner alle...") : "Skann alle verter";
   if (s.sweep.running) {
-    $("jobTag").style.display = ""; $("jobTag").className = "tag acc"; $("jobTag").textContent = "jobb kjører";
+    $("jobTag").style.display = ""; $("jobTag").className = "tag acc"; $("jobTag").textContent = "skanner...";
   } else { $("jobTag").style.display = "none"; }
-  if (s.sweep.error && s.sweep.error !== renderStatus.lastErr) toast("Jobb feilet: " + s.sweep.error, true);
+  if (s.sweep.error && s.sweep.error !== renderStatus.lastErr) toast("Feil: " + s.sweep.error, true);
   renderStatus.lastErr = s.sweep.error;
 }
 
-// ── Host grid (clickable cards) ─────────────────────────────────
+// ── Host grid ───────────────────────────────────────────────────
 let selectedHost = null;
 let lastSession = {};
 function renderSession(sess){
@@ -281,23 +471,27 @@ function renderSession(sess){
   const hosts = sess.hosts || [];
   const count = [0,0,0,0,0]; let changes = 0;
   for (const h of hosts) for (const f of h.findings) { count[f.severity]++; if (f.source === "baseline" && f.severity > 0) changes++; }
-  const tiles = [[hosts.length, "verter", ""], [count[4], "kritisk", "var(--crit)"], [count[3], "høy", "var(--bad)"],
+  const tiles = [[hosts.length, "maskiner", ""], [count[4], "kritisk", "var(--crit)"], [count[3], "h\xf8y", "var(--bad)"],
                  [count[2], "medium", "var(--warn)"], [count[1], "lav", "var(--teal)"], [changes, "endringer", ""]];
   $("tiles").replaceChildren(...tiles.map(([n, l, c]) => el("div", {class: "tile"},
       el("div", {class: "n", style: n && c ? "color:" + c : ""}, String(n)), el("div", {class: "l"}, l))));
-  $("sessionMeta").textContent = sess.generated_at ? "· " + sess.generated_at : "";
-  if (!hosts.length) { $("hostgrid").replaceChildren(el("div", {class: "mut"}, "Kjør en sweep eller velg «Oppdag verter» for å starte.")); return; }
+
+  if (!hosts.length) {
+    $("hostgrid").replaceChildren(el("div", {class: "welcome"},
+      el("h3", {}, "Ingen maskiner skannet enda"),
+      el("p", {}, "Legg til en maskin i feltet ovenfor og klikk \xabGodkjenn og skann\xbb for \xe5 komme i gang.")));
+    return;
+  }
 
   const cards = hosts.map(h => {
     const top = Math.max(0, ...h.findings.map(f => f.severity));
     const hasChanges = h.findings.some(f => f.source === "baseline" && f.severity > 0);
-    const card = el("div", {class: "hcard" + (selectedHost === h.host ? " selected" : ""), onclick: () => selectHost(h.host)},
+    return el("div", {class: "hcard" + (selectedHost === h.host ? " selected" : ""), onclick: () => selectHost(h.host)},
       el("div", {class: "ip"}, h.host),
-      el("div", {class: "meta"}, (h.os_name || "ukjent") + " · " + (h.method || "")),
+      el("div", {class: "meta"}, (h.os_name || "ukjent") + " \xb7 " + (h.method || "")),
       el("div", {class: "badges"},
         h.error ? el("span", {class: "tag bad"}, "feil") : el("span", {class: "tag " + SEVCLS[top]}, h.findings.length + " funn"),
         hasChanges ? el("span", {class: "tag warn"}, "endret") : null));
-    return card;
   });
   $("hostgrid").replaceChildren(...cards);
   if (selectedHost) renderDetail(hosts.find(h => h.host === selectedHost));
@@ -306,8 +500,7 @@ function renderSession(sess){
 function selectHost(ip){
   selectedHost = ip;
   document.querySelectorAll(".hcard").forEach(c => c.classList.toggle("selected", c.querySelector(".ip").textContent === ip));
-  const h = (lastSession.hosts || []).find(x => x.host === ip);
-  renderDetail(h);
+  renderDetail((lastSession.hosts || []).find(x => x.host === ip));
 }
 
 function renderDetail(h){
@@ -316,21 +509,21 @@ function renderDetail(h){
   d.classList.add("open");
   $("detailHost").textContent = h.host;
   $("detailOs").textContent = h.os_name || "ukjent";
-  $("btnAssess").onclick = () => act(() => api("/api/assess", {host: h.host, os: h.os_name || "linux", with_ai: $("withAi").checked}), "Assessment startet for " + h.host);
+  $("btnAssess").onclick = () => act(() => api("/api/assess", {host: h.host, os: h.os_name || "linux", with_ai: $("withAi").checked}), "Skanning startet for " + h.host);
   const hasChanges = h.findings.some(f => f.source === "baseline" && f.severity > 0);
   const bb = $("btnBaseline"); bb.style.display = hasChanges ? "" : "none";
-  bb.onclick = () => act(() => api("/api/baseline/accept", {host: h.host}), "Baseline godtatt for " + h.host);
+  bb.onclick = () => act(() => api("/api/baseline/accept", {host: h.host}), "Endringer godtatt for " + h.host);
 
   const min = +$("minSev").value;
   const fs = h.findings.filter(f => f.severity >= min).sort((a, b) => b.severity - a.severity);
   if (h.error) {
     $("detailFindings").replaceChildren(el("div", {class: "finding"}, el("div", {class: "d"}, h.error)));
   } else if (!fs.length) {
-    $("detailFindings").replaceChildren(el("div", {class: "mut", style: "padding:10px"}, h.findings.length ? "Ingen funn på valgt nivå." : "Ingen funn."));
+    $("detailFindings").replaceChildren(el("div", {class: "mut", style: "padding:12px"}, h.findings.length ? "Ingen funn p\xe5 valgt niv\xe5." : "Ingen funn — maskinen ser bra ut!"));
   } else {
     $("detailFindings").replaceChildren(...fs.map(f => el("div", {class: "finding"},
       el("div", {class: "row"}, el("span", {class: "tag " + SEVCLS[f.severity]}, SEV[f.severity]),
-        el("span", {class: "mut", style: "font-size:12px"}, f.source + " · " + f.category + (f.confirmed === false ? " · ubekreftet" : ""))),
+        el("span", {class: "mut", style: "font-size:12px"}, f.source + " \xb7 " + f.category + (f.confirmed === false ? " \xb7 ubekreftet" : ""))),
       el("div", {class: "t"}, f.title), el("div", {class: "d"}, f.detail),
       f.evidence ? el("div", {class: "ev"}, String(f.evidence).slice(0, 400)) : null,
       f.recommendation ? el("div", {class: "r"}, "→ " + f.recommendation) : null)));
@@ -340,7 +533,7 @@ function renderDetail(h){
   aiDiv.replaceChildren();
   if (h.ai && h.ai.ok && h.ai.text) {
     aiDiv.append(el("div", {class: "hyp"},
-      el("div", {class: "k"}, "AI-hypotese \xb7 " + ((h.ai.route || {}).model || "")), document.createTextNode(h.ai.text)));
+      el("div", {class: "k"}, "AI-vurdering \xb7 " + ((h.ai.route || {}).model || "")), document.createTextNode(h.ai.text)));
   }
 }
 
@@ -349,9 +542,9 @@ function renderApprovals(list){
   const pending = list.filter(r => r.status === "pending");
   $("approvals").replaceChildren(...(pending.length ? pending.map(r => el("div", {class: "req"},
       el("div", {}, el("span", {class: "tag warn"}, r.action), " ", el("b", {class: "mono"}, r.target)),
-      el("div", {class: "mut", style: "font-size:12px;margin:4px 0 8px"}, "fra " + r.requested_by + (r.reason ? " \xb7 " + r.reason : "")),
+      el("div", {class: "mut", style: "font-size:12px;margin:6px 0 10px"}, "Fra " + r.requested_by + (r.reason ? " — " + r.reason : "")),
       el("div", {class: "row"},
-        el("button", {class: "small ok", onclick: () => { if (confirm("Bekreft at du eier " + r.target + " eller har skriftlig tillatelse til \xe5 teste den."))
+        el("button", {class: "small ok", onclick: () => { if (confirm("Bekreft at du eier " + r.target + " eller har tillatelse til \xe5 teste den."))
             act(() => api("/api/approvals/" + r.id, {approve: true}), r.target + " godkjent"); }}, "Godkjenn"),
         el("button", {class: "small ghost", onclick: () => act(() => api("/api/approvals/" + r.id, {approve: false}), "Avsl\xe5tt")}, "Avsl\xe5"))))
     : [el("div", {class: "mut"}, "Ingen forespørsler venter.")]));
@@ -366,26 +559,25 @@ async function refreshScope(){
         el("span", {class: "tag"}, e.os_hint || "auto"),
         el("span", {class: "mut", style: "flex:1;font-size:12px"}, e.note || ""),
         el("button", {class: "small danger", onclick: () => act(() => api("/api/scope/remove", {identifier: e.identifier}),
-          e.identifier + " fjernet fra scope").then(refreshScope)}, "\xd7")))
-      : [el("div", {class: "mut"}, "Ingen verter i scope.")]));
+          e.identifier + " fjernet").then(refreshScope)}, "\xd7")))
+      : [el("div", {class: "mut"}, "Ingen maskiner godkjent enda.")]));
 
     const kEntries = Object.entries(keys);
     $("hostkeyList").replaceChildren(...(kEntries.length ? kEntries.map(([hp, v]) => el("div", {class: "scope-row"},
         el("span", {class: "mono", style: "min-width:200px"}, hp),
-        el("span", {class: "mut", style: "flex:1;font-size:12px"}, v.type + " " + v.fingerprint.slice(0, 24) + "..."),
+        el("span", {class: "mut", style: "flex:1;font-size:12px"}, v.type + " " + v.fingerprint.slice(0, 24) + "…"),
         el("button", {class: "small ghost", onclick: () => {
           const [h, p] = hp.split(":");
-          act(() => api("/api/hostkeys/forget", {host: h, port: parseInt(p)}), "N\xf8kkel glemt for " + hp).then(refreshScope);
+          act(() => api("/api/hostkeys/forget", {host: h, port: parseInt(p)}), "N\xf8kkel glemt").then(refreshScope);
         }}, "Glem")))
-      : [el("div", {class: "mut"}, "Ingen lagrede vertsnøkler.")]));
+      : [el("div", {class: "mut"}, "Ingen lagrede n\xf8kler enda. De opprettes automatisk ved f\xf8rste SSH-tilkobling.")]));
   } catch(e) { toast(e.message, true); }
 }
-
 $("btnScopeAdd").onclick = async () => {
   const ident = $("scopeIp").value.trim();
-  if (!ident) return toast("Skriv inn IP eller hostname", true);
+  if (!ident) return toast("Skriv inn en IP-adresse eller hostname", true);
   await act(() => api("/api/scope/add", {identifier: ident, os_hint: $("scopeOs").value, note: $("scopeNote").value}),
-    ident + " lagt til i scope");
+    ident + " lagt til");
   $("scopeIp").value = ""; $("scopeNote").value = "";
   refreshScope();
 };
@@ -394,19 +586,19 @@ $("btnScopeAdd").onclick = async () => {
 async function refreshVault(){
   try {
     const v = await api("/api/vault");
-    if (!v.available) { $("vaultList").replaceChildren(el("div", {class: "mut"}, "Vault ikke tilgjengelig. Sett AGENT2_VAULT_KEY.")); return; }
+    if (!v.available) { $("vaultList").replaceChildren(el("div", {class: "mut"}, "Vault er ikke satt opp. Sett milj\xf8variabelen AGENT2_VAULT_KEY f\xf8rst.")); return; }
     $("vaultList").replaceChildren(...(v.ids.length ? v.ids.map(id => el("div", {class: "scope-row"},
         el("span", {class: "mono", style: "min-width:200px"}, id),
-        el("button", {class: "small danger", onclick: () => act(() => api("/api/vault/remove", {id}), id + " fjernet").then(refreshVault)}, "\xd7")))
-      : [el("div", {class: "mut"}, "Ingen credentials lagret.")]));
+        el("span", {class: "mut", style: "flex:1"}, "••••••••"),
+        el("button", {class: "small danger", onclick: () => act(() => api("/api/vault/remove", {id}), id + " slettet").then(refreshVault)}, "\xd7")))
+      : [el("div", {class: "mut"}, "Ingen p\xe5logginger lagret enda.")]));
   } catch(e) { toast(e.message, true); }
 }
-
 $("btnVaultAdd").onclick = async () => {
   const id = $("vaultId").value.trim(), secret = $("vaultSecret").value;
-  if (!id || !secret) return toast("ID og passord/nøkkel er påkrevd", true);
+  if (!id || !secret) return toast("Du m\xe5 fylle inn ID og passord/n\xf8kkel", true);
   await act(() => api("/api/vault/add", {id, kind: $("vaultKind").value, username: $("vaultUser").value, secret}),
-    id + " lagt til i vault");
+    id + " lagret");
   $("vaultId").value = ""; $("vaultUser").value = ""; $("vaultSecret").value = "";
   refreshVault();
 };
@@ -423,7 +615,7 @@ async function refreshAudit(){
   } catch(e) {}
 }
 
-// ── Main refresh ────────────────────────────────────────────────
+// ── Refresh ─────────────────────────────────────────────────────
 async function refresh(){
   try {
     const [s, sess, appr] = await Promise.all([api("/api/status"), api("/api/session"), api("/api/approvals")]);
@@ -431,27 +623,27 @@ async function refresh(){
   } catch(e) { $("dot").className = "dot bad"; }
 }
 
-$("minSev").onchange = () => { renderSession(lastSession); };
-// Quick-add: approve host into scope and immediately scan it
+$("minSev").onchange = () => renderSession(lastSession);
+
+// Quick-add: approve + scan
 $("btnQuickAdd").onclick = async () => {
   const ip = $("quickIp").value.trim();
   const os = $("quickOs").value;
-  if (!ip) return toast("Skriv inn IP eller hostname", true);
+  if (!ip) return toast("Skriv inn en IP-adresse", true);
   try {
     await api("/api/scope/add", {identifier: ip, os_hint: os, note: "godkjent via dashboard"});
-    toast(ip + " lagt til i scope — starter skanning...");
+    toast(ip + " godkjent — starter skanning…");
     $("quickIp").value = "";
     await api("/api/assess", {host: ip, os: os, with_ai: $("withAi").checked});
-    toast("Skanning startet for " + ip);
   } catch(e) { toast(e.message, true); }
   refresh();
 };
 $("quickIp").addEventListener("keydown", e => { if (e.key === "Enter") $("btnQuickAdd").click(); });
 
-$("btnSweep").onclick = () => act(() => api("/api/sweep", {with_ai: $("withAi").checked}), "Sweep startet");
+$("btnSweep").onclick = () => act(() => api("/api/sweep", {with_ai: $("withAi").checked}), "Skanning av alle verter startet");
 $("btnBridge").onclick = () => act(async () => { const r = await api("/api/bridge/sync", {}); const s = r.summary;
-  toast("Agent 1: " + s.queued.length + " i k\xf8, " + s.approval_requested.length + " venter p\xe5 godkjenning"); });
-$("btnDiscover").onclick = () => act(() => api("/api/discover", {}), "Discovery startet");
+  toast("Agent 1: " + s.queued.length + " i k\xf8, " + s.approval_requested.length + " venter"); });
+$("btnDiscover").onclick = () => act(() => api("/api/discover", {}), "S\xf8k etter verter startet");
 
 refresh();
 setInterval(refresh, 5000);
