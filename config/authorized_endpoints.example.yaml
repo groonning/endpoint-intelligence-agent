@@ -1,0 +1,23 @@
+# Authorised endpoints — the hard scope gate for Agent 2.
+#
+# Only hosts/ranges listed here can be discovered, connected to, or scanned.
+# Adding an entry IS the authorisation step: you assert you own the host or hold
+# written permission to test it. There is NO allow-all wildcard; 0.0.0.0/0 is
+# rejected on load.
+#
+# identifier : an IP, a CIDR range, or a hostname.
+# note       : why you're authorised (recorded for the audit trail).
+# os_hint    : optional "linux" | "windows" to steer the collector.
+
+endpoints:
+  - identifier: "127.0.0.1"
+    note: "the Kali box itself (self-audit)"
+    os_hint: "linux"
+
+  - identifier: "192.168.56.0/24"
+    note: "my VirtualBox host-only lab network"
+    os_hint: ""
+
+  - identifier: "10.10.10.5"
+    note: "lab Windows VM, signed engagement 2026-11"
+    os_hint: "windows"

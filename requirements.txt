@@ -1,0 +1,19 @@
+# Core runtime (always required)
+PyYAML>=6.0
+cryptography>=42.0
+
+# --- Optional, feature-gated. Install what your deployment needs. ---
+# Remote collection:
+#   pip install paramiko           # SSH (Linux endpoints)
+#   pip install pywinrm            # WinRM (Windows endpoints)
+# Detection content:
+#   pip install pysigma sigma-cli  # Sigma rule validation (engine also works without it)
+#   pip install yara-x             # YARA-X file scanning
+# External AI (off by default; agent runs on local Ollama otherwise):
+#   pip install anthropic          # Claude Sonnet/Opus for complex analysis
+# PDF reports (HTML/JSON always work without these):
+#   pip install weasyprint         # preferred
+#   # or system wkhtmltopdf + pip install pdfkit
+
+# Development/testing:
+#   pip install pytest pytest-asyncio

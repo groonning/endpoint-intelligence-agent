@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "endpoint-intelligence-agent"
+version = "0.2.0"
+description = "Agent 2 — read-only endpoint security-intelligence agent for authorised test environments"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Claim it" }]
+dependencies = [
+  "PyYAML>=6.0",
+  "cryptography>=42.0",   # credential vault (Fernet)
+]
+
+[project.optional-dependencies]
+# Remote collection transports
+ssh = ["paramiko>=3.4"]
+winrm = ["pywinrm>=0.4.3"]
+# Detection content engines
+sigma = ["pysigma>=0.11"]
+yara = ["yara-x>=0.10"]
+# External model layer
+claude = ["anthropic>=0.40"]
+# PDF rendering (either works; weasyprint preferred)
+pdf = ["weasyprint>=60"]
+# Local web dashboard
+dashboard = ["flask>=3.0"]
+# Everything + test tooling
+all = [
+  "paramiko>=3.4", "pywinrm>=0.4.3", "pysigma>=0.11", "yara-x>=0.10",
+  "anthropic>=0.40", "weasyprint>=60", "flask>=3.0",
+]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+endpoint-agent = "endpoint_agent.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["endpoint_agent*"]
+
+[tool.setuptools.package-data]
+endpoint_agent = ["static/*.html"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]

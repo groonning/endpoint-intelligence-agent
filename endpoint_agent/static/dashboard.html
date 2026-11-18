@@ -1,0 +1,217 @@
+<!doctype html><html lang="no"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Endpoint Intelligence Dashboard</title>
+<style>
+ :root{--bg:#0d1117;--panel:#161b22;--line:#30363d;--fg:#e6edf3;--mut:#8b949e;
+       --acc:#2f81f7;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--teal:#39c5cf;--crit:#ff7b72}
+ *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);
+   font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+ header{display:flex;align-items:center;gap:14px;padding:12px 20px;flex-wrap:wrap;
+   border-bottom:1px solid var(--line);background:var(--panel)}
+ header h1{font-size:16px;margin:0;font-weight:600}
+ header .sp{flex:1}
+ .dot{width:9px;height:9px;border-radius:50%;background:var(--mut);display:inline-block}
+ .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)} .dot.bad{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+ button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:6px 12px;
+   cursor:pointer;font-size:13px;font-family:inherit}
+ button.ghost{background:#21262d;color:var(--fg);border:1px solid var(--line)}
+ button.danger{background:#30181a;color:var(--bad);border:1px solid var(--bad)}
+ button:hover{filter:brightness(1.1)} button:disabled{opacity:.5;cursor:default}
+ button:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+ .tools{display:flex;gap:8px;flex-wrap:wrap;padding:8px 20px;border-bottom:1px solid var(--line);
+   background:#10151c;font-size:12px}
+ .legal{font-size:12px;color:var(--warn);padding:8px 20px;background:#1c1708;border-bottom:1px solid #3a2e0a}
+ .killed{display:none;padding:10px 20px;background:#30181a;color:var(--crit);border-bottom:1px solid var(--bad);font-weight:600}
+ .wrap{padding:20px;display:grid;gap:18px;max-width:1280px;margin:0 auto}
+ .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+ .panel h2{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);
+   display:flex;align-items:center;gap:10px}
+ .panel h2 .sp{flex:1}
+ .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+ .tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ .tile .n{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+ .tile .l{font-size:12px;color:var(--mut)}
+ .two{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:18px;align-items:start}
+ @media(max-width:900px){.two{grid-template-columns:1fr}}
+ .stack{display:grid;gap:18px}
+ table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:6px 8px;
+   border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:top} th{color:var(--mut);font-weight:500}
+ .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+ .tag{font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--mut);white-space:nowrap}
+ .tag.ok{color:var(--ok);border-color:var(--ok)} .tag.warn{color:var(--warn);border-color:var(--warn)}
+ .tag.bad{color:var(--bad);border-color:var(--bad)} .tag.teal{color:var(--teal);border-color:var(--teal)}
+ .tag.crit{color:#0d1117;background:var(--crit);border-color:var(--crit);font-weight:700}
+ .host{border:1px solid var(--line);border-radius:8px;margin-bottom:12px;overflow:hidden}
+ .host>summary{cursor:pointer;padding:10px 12px;background:#10151c;display:flex;gap:10px;align-items:center;flex-wrap:wrap;list-style:none}
+ .host>summary::-webkit-details-marker{display:none}
+ .host>summary b{font-size:14px}
+ .f{padding:10px 12px;border-top:1px solid var(--line)}
+ .f .t{font-weight:600;margin:4px 0 2px;overflow-wrap:anywhere}
+ .f .d{color:#c9d1d9;font-size:13px;overflow-wrap:anywhere} .f .r{color:var(--ok);font-size:12.5px;margin-top:4px}
+ .ev{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:#0d1117;border:1px solid var(--line);
+   border-radius:6px;padding:6px 8px;margin-top:6px;white-space:pre-wrap;word-break:break-all;color:var(--mut)}
+ .hyp{margin:10px 12px 12px;border:1px solid #3a2e0a;background:#1c1708;border-radius:8px;padding:10px 12px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+ .hyp .k{font-size:11px;color:var(--warn);text-transform:uppercase;font-weight:700;letter-spacing:.4px}
+ .mut{color:var(--mut)} .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+ select{background:#21262d;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;font-size:12px}
+ .req{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px}
+ #toast{position:fixed;right:16px;bottom:16px;background:#21262d;border:1px solid var(--line);border-radius:8px;
+   padding:10px 14px;max-width:420px;display:none;font-size:13px}
+ #toast.err{border-color:var(--bad);color:var(--crit)}
+</style></head><body>
+<header>
+  <span class="dot" id="dot"></span><h1>Endpoint Intelligence · Agent 2</h1>
+  <span class="tag" id="role"></span><span class="tag" id="auditTag"></span>
+  <span class="sp"></span>
+  <label class="row mut" style="font-size:12px"><input type="checkbox" id="withAi" checked> AI-analyse</label>
+  <button id="btnSweep">Kjør sweep</button>
+  <button class="ghost" id="btnBridge">Hent enheter fra Agent 1</button>
+  <button class="danger" id="btnKill">Nødstopp</button>
+</header>
+<div class="killed" id="killed"></div>
+<div class="tools" id="features"></div>
+<div class="legal">Kun autoriserte maskiner. Agenten leser, den endrer ingenting på endepunktene. Nye mål må godkjennes av et menneske.</div>
+<div class="wrap">
+  <div class="tiles" id="tiles"></div>
+  <div class="two">
+    <div class="panel">
+      <h2>Siste sweep <span class="mut" id="sessionMeta" style="text-transform:none;letter-spacing:0"></span><span class="sp"></span>
+        <select id="minSev" aria-label="Laveste alvorlighetsgrad">
+          <option value="0">Alle funn</option><option value="1" selected>Lav og høyere</option>
+          <option value="2">Medium og høyere</option><option value="3">Høy og kritisk</option>
+        </select></h2>
+      <div id="hosts"><div class="mut">Ingen sweep er kjørt ennå.</div></div>
+    </div>
+    <div class="stack">
+      <div class="panel"><h2>Venter på godkjenning</h2><div id="approvals"></div></div>
+      <div class="panel"><h2>Autorisert scope</h2><div id="scope"></div></div>
+    </div>
+  </div>
+  <div class="panel"><h2>Revisjonslogg (siste hendelser)</h2>
+    <div style="overflow-x:auto"><table style="min-width:760px"><thead><tr><th>Tid (UTC)</th><th>Aktør</th><th>Handling</th><th>Mål</th><th>Utfall</th><th>Detaljer</th></tr></thead><tbody id="audit"></tbody></table></div>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+<script>
+const TOKEN = "__AGENT2_TOKEN__";
+const SEV = ["info","lav","medium","høy","kritisk"];
+const SEVCLS = ["", "teal", "warn", "bad", "crit"];
+const $ = id => document.getElementById(id);
+// All data from endpoints is untrusted: build DOM nodes, never HTML strings.
+function el(tag, attrs, ...kids){
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs||{})) {
+    if (k === "class") n.className = v; else if (k === "onclick") n.onclick = v; else n.setAttribute(k, v);
+  }
+  for (const kid of kids) if (kid != null) n.append(kid);
+  return n;
+}
+async function api(path, body){
+  const opt = {headers: {"X-Agent2-Token": TOKEN}};
+  if (body !== undefined) { opt.method = "POST"; opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || ("HTTP " + r.status));
+  return data;
+}
+let toastTimer;
+function toast(msg, err){ const t = $("toast"); t.textContent = msg; t.className = err ? "err" : ""; t.style.display = "block";
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = "none", 6000); }
+async function act(fn, okMsg){ try { await fn(); if (okMsg) toast(okMsg); } catch(e) { toast(e.message, true); } refresh(); }
+
+function renderStatus(s){
+  const killed = s.kill.engaged;
+  $("dot").className = "dot " + (killed ? "bad" : "on");
+  $("role").textContent = "rolle: " + s.role;
+  $("auditTag").textContent = s.audit.ok ? "revisjonslogg intakt" : "REVISJONSLOGG BRUTT";
+  $("auditTag").className = "tag " + (s.audit.ok ? "ok" : "bad");
+  $("killed").style.display = killed ? "block" : "none";
+  $("killed").textContent = killed ? "Nødstopp er aktiv: " + (s.kill.reason || "") + ". Ingen innsamling kjører." : "";
+  const k = $("btnKill"); k.textContent = killed ? "Opphev nødstopp" : "Nødstopp"; k.className = killed ? "ghost" : "danger";
+  k.onclick = () => killed ? act(() => api("/api/reset-kill", {}), "Nødstopp opphevet") : act(() => api("/api/kill", {reason: "dashbord"}), "Nødstopp aktivert");
+  const sw = $("btnSweep"); sw.disabled = s.sweep.running || killed; sw.textContent = s.sweep.running ? "Sweep kjører…" : "Kjør sweep";
+  if (s.sweep.error && s.sweep.error !== renderStatus.lastErr) toast("Sweep feilet: " + s.sweep.error, true);
+  renderStatus.lastErr = s.sweep.error;
+  const f = s.features, feats = [
+    ["Lokal modell: " + s.ai.model, s.ai.enabled], ["Eksterne modeller", s.ai.external_allowed],
+    ["Logginnsamling", f.logs], ["Filinnsamling", f.files], ["CVE-oppslag (OSV)", f.vuln], ["Lynis", f.lynis],
+    ["Sigma: " + f.sigma_rules + " regler" + (f.sigma_skipped ? " (" + f.sigma_skipped + " hoppet over)" : ""), f.sigma_rules > 0],
+    ["YARA-X", f.yara], ["Strenge vertsnøkler", f.strict_host_keys]];
+  $("features").replaceChildren(...feats.map(([name, on]) => el("span", {class: "tag " + (on ? "ok" : "")}, (on ? "på · " : "av · ") + name)));
+  $("scope").replaceChildren(s.scope.length ? el("table", {}, el("tbody", {}, ...s.scope.map(e =>
+      el("tr", {}, el("td", {class: "mono"}, e.identifier), el("td", {}, e.os_hint || "–"), el("td", {class: "mut"}, e.note)))))
+    : el("div", {class: "mut"}, "Ingen autoriserte mål. Legg til med: endpoint-agent scope add"));
+}
+function renderSession(sess){
+  const hosts = sess.hosts || [];
+  const count = [0,0,0,0,0]; let changes = 0;
+  for (const h of hosts) for (const f of h.findings) { count[f.severity]++; if (f.source === "baseline" && f.severity > 0) changes++; }
+  const tiles = [[hosts.length, "verter", ""], [count[4], "kritisk", "var(--crit)"], [count[3], "høy", "var(--bad)"],
+                 [count[2], "medium", "var(--warn)"], [count[1], "lav", "var(--teal)"], [changes, "endringer siden baseline", ""]];
+  $("tiles").replaceChildren(...tiles.map(([n, l, c]) => el("div", {class: "tile"},
+      el("div", {class: "n", style: n && c ? "color:" + c : ""}, String(n)), el("div", {class: "l"}, l))));
+  $("sessionMeta").textContent = sess.generated_at ? "· " + sess.generated_at : "";
+  if (!hosts.length) { $("hosts").replaceChildren(el("div", {class: "mut"}, "Ingen sweep er kjørt ennå.")); return; }
+  const min = +$("minSev").value;
+  const open = new Set([...document.querySelectorAll("details.host[open]")].map(d => d.dataset.host));
+  const first = !renderSession.seen; renderSession.seen = true;
+  const nodes = hosts.map(h => {
+    const fs = h.findings.filter(f => f.severity >= min).sort((a, b) => b.severity - a.severity);
+    const top = Math.max(0, ...h.findings.map(f => f.severity));
+    const d = el("details", {class: "host", "data-host": h.host},
+      el("summary", {}, el("b", {class: "mono"}, h.host), el("span", {class: "mut"}, h.os_name + " · " + h.method),
+        h.error ? el("span", {class: "tag bad"}, "ikke undersøkt") : el("span", {class: "tag " + SEVCLS[top]}, h.findings.length + " funn"),
+        el("span", {style: "flex:1"}),
+        h.findings.some(f => f.source === "baseline" && f.severity > 0)
+          ? el("button", {class: "ghost", onclick: ev => { ev.preventDefault();
+              if (confirm("Godta dagens tilstand på " + h.host + " som ny baseline?"))
+                act(() => api("/api/baseline/accept", {host: h.host}), "Baseline oppdatert for " + h.host); }}, "Godta endringer") : null));
+    if (h.error) d.append(el("div", {class: "f"}, el("div", {class: "d"}, h.error)));
+    else if (!fs.length) d.append(el("div", {class: "f mut"}, h.findings.length ? "Ingen funn på valgt nivå." : "Ingen funn."));
+    for (const f of fs) d.append(el("div", {class: "f"},
+      el("div", {class: "row"}, el("span", {class: "tag " + SEVCLS[f.severity]}, SEV[f.severity]),
+        el("span", {class: "mut", style: "font-size:12px"}, f.source + " · " + f.category + (f.confirmed === false ? " · ubekreftet" : ""))),
+      el("div", {class: "t"}, f.title), el("div", {class: "d"}, f.detail),
+      f.evidence ? el("div", {class: "ev"}, String(f.evidence).slice(0, 400)) : null,
+      f.recommendation ? el("div", {class: "r"}, "→ " + f.recommendation) : null));
+    if (h.ai && h.ai.ok && h.ai.text) d.append(el("div", {class: "hyp"},
+      el("div", {class: "k"}, "AI-hypotese · " + ((h.ai.route || {}).model || "")), h.ai.text));
+    if (open.has(h.host) || (first && top >= 3)) d.open = true;
+    return d;
+  });
+  const c = sess.ai_correlation;
+  if (c && c.ok && c.text) nodes.unshift(el("div", {class: "hyp", style: "margin:0 0 12px"},
+    el("div", {class: "k"}, "AI-hypotese · korrelasjon på tvers av verter"), c.text));
+  $("hosts").replaceChildren(...nodes);
+}
+function renderApprovals(list){
+  const pending = list.filter(r => r.status === "pending");
+  $("approvals").replaceChildren(...(pending.length ? pending.map(r => el("div", {class: "req"},
+      el("div", {}, el("span", {class: "tag warn"}, r.action), " ", el("b", {class: "mono"}, r.target)),
+      el("div", {class: "mut", style: "font-size:12px;margin:4px 0 8px"}, "fra " + r.requested_by + (r.reason ? " · " + r.reason : "")),
+      el("div", {class: "row"},
+        el("button", {onclick: () => { if (confirm("Bekreft at du eier " + r.target + " eller har skriftlig tillatelse til å teste den."))
+            act(() => api("/api/approvals/" + r.id, {approve: true}), r.target + " er lagt til i scope"); }}, "Godkjenn"),
+        el("button", {class: "ghost", onclick: () => act(() => api("/api/approvals/" + r.id, {approve: false}), "Avslått")}, "Avslå"))))
+    : [el("div", {class: "mut"}, "Ingen forespørsler venter.")]));
+}
+function renderAudit(rows){
+  $("audit").replaceChildren(...rows.slice().reverse().map(e => el("tr", {},
+    el("td", {class: "mono"}, e.ts.replace("T", " ").replace("Z", "")), el("td", {}, e.actor), el("td", {class: "mono"}, e.action),
+    el("td", {class: "mono"}, e.target),
+    el("td", {}, el("span", {class: "tag " + ({ok: "ok", error: "bad", denied: "bad"}[e.outcome] || "")}, e.outcome)),
+    el("td", {class: "mono mut", style: "overflow-wrap:anywhere"}, JSON.stringify(e.detail).slice(0, 160)))));
+}
+let lastSession = {};
+async function refresh(){
+  try {
+    const [s, sess, appr, audit] = await Promise.all([api("/api/status"), api("/api/session"), api("/api/approvals"), api("/api/audit?n=30")]);
+    renderStatus(s); lastSession = sess; renderSession(sess); renderApprovals(appr); renderAudit(audit);
+  } catch(e) { $("dot").className = "dot bad"; }
+}
+$("minSev").onchange = () => renderSession(lastSession);
+$("btnSweep").onclick = () => act(() => api("/api/sweep", {with_ai: $("withAi").checked}), "Sweep startet");
+$("btnBridge").onclick = () => act(async () => { const r = await api("/api/bridge/sync", {}); const s = r.summary;
+  toast("Agent 1: " + s.queued.length + " i kø, " + s.approval_requested.length + " venter på godkjenning, " + s.needs_credential.length + " mangler credential"); });
+refresh(); setInterval(refresh, 5000);
+</script></body></html>

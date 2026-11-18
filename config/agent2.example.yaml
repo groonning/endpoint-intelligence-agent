@@ -1,0 +1,75 @@
+# Agent 2 — Endpoint Intelligence Agent configuration.
+# Copy to config/agent2.yaml and adjust. Paths are relative to where you run the
+# agent (the project root) unless absolute. Unknown keys are rejected on load.
+
+scope_path: config/authorized_endpoints.yaml
+roles_path: config/roles.yaml
+vault_path: config/credentials.vault
+known_hosts_path: config/known_hosts.json   # pinned SSH host keys
+ssh_strict_host_keys: false         # true: refuse SSH hosts whose key is not pinned yet
+audit_path: audit/agent2-audit.jsonl
+killswitch_path: .run/killswitch
+approvals_path: .run/approvals.json # requests to widen the scope, awaiting a human
+bus_dir: .run/orchestrator          # task inbox/outbox shared with Agent 1 / orchestrator
+state_dir: state                    # baselines, OSV cache, last sweep
+reports_dir: reports
+sigma_rules_dir: rules/sigma        # clone SigmaHQ/sigma rules here (optional)
+yara_rules_dir: rules/yara          # put your YARA-X *.yar rules here (optional)
+
+default_role: operator              # role used when the CLI doesn't specify one
+
+# Which vault credential to use for which host. Keys are an IP, a CIDR range or a
+# hostname; an exact match wins over a range. Used by `sweep`, the Agent 1 bridge
+# and any task that does not name a credential.
+credentials_map: {}
+#  192.168.56.0/24: lab-ssh
+#  10.10.10.5: lab-winrm
+
+ai:
+  ollama_url: http://127.0.0.1:11434
+  ollama_model: qwen3:30b-a3b       # same local model convention as Agent 1
+  allow_external: false             # keep false to stay fully offline/private
+  anthropic_model_complex: claude-sonnet-5-5
+  anthropic_model_critical: claude-opus-5-5
+  max_external_tokens_per_run: 200000   # hard cap for ONE sweep, then local model
+  redact_before_external: true      # strip IPs/hostnames before any external call
+
+limits:
+  rate_per_sec: 5.0                 # token-bucket refill rate
+  burst: 10                         # bucket capacity
+  max_concurrency: 8                # hosts collected in parallel
+  connect_timeout_s: 15
+  command_timeout_s: 60
+
+logs:
+  enabled: true                     # auth log / journal / Windows event logs, for Sigma
+
+# File contents are read ONLY from the directories listed here, and never from
+# key/credential files even inside them. Contents are hashed and YARA-scanned in
+# memory; reports and baselines keep path + size + SHA-256 only.
+files:
+  enabled: false
+  linux_paths: []                   # e.g. [/opt/myapp/conf, /var/www/html]
+  windows_paths: []                 # e.g. ['C:\inetpub\wwwroot']
+  max_file_bytes: 1048576
+  max_files: 200
+  max_depth: 3
+
+# Known-vulnerability lookup. Sends package names + versions (no host details)
+# to the OSV API, so it is off by default.
+vuln:
+  enabled: false
+  osv_url: https://api.osv.dev
+  cache_ttl_hours: 24
+  kali_as_debian: ""                # e.g. "13": check Kali packages against that Debian release (approximate)
+  max_findings: 25
+
+lynis:
+  enabled: false                    # run `lynis audit system` on Linux hosts that have it
+
+agent1:
+  url: http://127.0.0.1:8777        # Agent 1 dashboard API (for `bridge`)
+
+dashboard:
+  host: 127.0.0.1
+  port: 8778

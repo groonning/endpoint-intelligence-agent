@@ -1,0 +1,35 @@
+# Role-based access control for Agent 2.
+# A role maps to a set of allowed capability names. "*" grants everything.
+# Capabilities currently checked by the agent:
+#   discovery.sweep   collect.read   analyze.run   scan.active
+#   scope.modify      report.read    report.write  ai.local   ai.external
+#   killswitch.engage  killswitch.reset  baseline.accept  hostkeys.modify
+#   approval.grant   (approve requests that widen the scope; admin only by default)
+# Wildcard prefixes work too, e.g. "collect.*".
+
+roles:
+  viewer:
+    - discovery.sweep
+    - collect.read
+    - analyze.run
+    - report.read
+    - report.write
+    - killswitch.engage      # anyone may stop the agent
+
+  operator:
+    - discovery.sweep
+    - collect.read
+    - analyze.run
+    - scan.active
+    - scope.modify
+    - report.read
+    - report.write
+    - ai.local
+    - baseline.accept
+    - hostkeys.modify
+    - killswitch.engage
+    - killswitch.reset
+    # add "ai.external" here to let operators use Claude (needs ai.allow_external too)
+
+  admin:
+    - "*"
