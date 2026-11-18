@@ -109,18 +109,27 @@
 
   <!-- TAB: Overview -->
   <div class="tabcontent active" id="tab-overview">
-    <!-- Action bar -->
+    <!-- Quick-add scope + action bar -->
     <div class="panel" style="margin-bottom:18px">
-      <div class="row" style="gap:12px">
-        <label class="row mut" style="font-size:12px"><input type="checkbox" id="withAi" checked> AI-analyse</label>
-        <button id="btnSweep">Kjør full sweep</button>
-        <button class="ghost" id="btnBridge">Hent fra Agent 1</button>
-        <button class="ghost" id="btnDiscover">Oppdag verter</button>
-        <span class="sp"></span>
-        <select id="minSev" aria-label="Laveste alvorlighetsgrad">
-          <option value="0">Alle funn</option><option value="1" selected>Lav og høyere</option>
-          <option value="2">Medium og høyere</option><option value="3">Høy og kritisk</option>
-        </select>
+      <h2>Legg til vert og godkjenn skanning</h2>
+      <div class="form-row">
+        <input id="quickIp" placeholder="IP, CIDR eller hostname" style="max-width:220px">
+        <select id="quickOs"><option value="linux">Linux</option><option value="windows">Windows</option></select>
+        <button id="btnQuickAdd" class="ok">Godkjenn og legg til</button>
+        <span style="color:var(--mut);font-size:12px">Bekreft at du eier verten eller har skriftlig tillatelse</span>
+      </div>
+      <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px">
+        <div class="row" style="gap:12px">
+          <label class="row mut" style="font-size:12px"><input type="checkbox" id="withAi" checked> AI-analyse</label>
+          <button id="btnSweep">Kjør full sweep</button>
+          <button class="ghost" id="btnBridge">Hent fra Agent 1</button>
+          <button class="ghost" id="btnDiscover">Oppdag verter</button>
+          <span class="sp"></span>
+          <select id="minSev" aria-label="Laveste alvorlighetsgrad">
+            <option value="0">Alle funn</option><option value="1" selected>Lav og høyere</option>
+            <option value="2">Medium og høyere</option><option value="3">Høy og kritisk</option>
+          </select>
+        </div>
       </div>
     </div>
     <!-- Tiles -->
@@ -130,7 +139,7 @@
       <div>
         <div class="panel">
           <h2>Verter <span class="mut" id="sessionMeta" style="text-transform:none;letter-spacing:0"></span></h2>
-          <div class="hostgrid" id="hostgrid"><div class="mut">Kjør en sweep eller velg «Oppdag verter» for å starte.</div></div>
+          <div class="hostgrid" id="hostgrid"><div class="mut">Legg til en vert ovenfor og trykk «Godkjenn og legg til» for å starte.</div></div>
         </div>
       </div>
       <div class="stack">
@@ -423,6 +432,22 @@ async function refresh(){
 }
 
 $("minSev").onchange = () => { renderSession(lastSession); };
+// Quick-add: approve host into scope and immediately scan it
+$("btnQuickAdd").onclick = async () => {
+  const ip = $("quickIp").value.trim();
+  const os = $("quickOs").value;
+  if (!ip) return toast("Skriv inn IP eller hostname", true);
+  try {
+    await api("/api/scope/add", {identifier: ip, os_hint: os, note: "godkjent via dashboard"});
+    toast(ip + " lagt til i scope — starter skanning...");
+    $("quickIp").value = "";
+    await api("/api/assess", {host: ip, os: os, with_ai: $("withAi").checked});
+    toast("Skanning startet for " + ip);
+  } catch(e) { toast(e.message, true); }
+  refresh();
+};
+$("quickIp").addEventListener("keydown", e => { if (e.key === "Enter") $("btnQuickAdd").click(); });
+
 $("btnSweep").onclick = () => act(() => api("/api/sweep", {with_ai: $("withAi").checked}), "Sweep startet");
 $("btnBridge").onclick = () => act(async () => { const r = await api("/api/bridge/sync", {}); const s = r.summary;
   toast("Agent 1: " + s.queued.length + " i k\xf8, " + s.approval_requested.length + " venter p\xe5 godkjenning"); });
